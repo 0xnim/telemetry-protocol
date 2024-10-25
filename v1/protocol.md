@@ -19,10 +19,10 @@ The header consists of 64 bits (8 bytes) structured as follows:
     - Bits 1-8: Protocol version
 
 1.2. Type (2 bits)
-    - Bits 9-10: Message type (tp)
+    - Bits 9-10: Message type (tp), (telemetry, command, status, response)
 
 1.3. ID (6 bits)
-    - Bits 11-16: Message ID
+    - Bits 11-16: Rocket ID
 
 1.4. Length (16 bits)
     - Bits 17-32: Total length of the message in bytes, including the header
@@ -30,7 +30,8 @@ The header consists of 64 bits (8 bytes) structured as follows:
 1.5 Time (32 bits)
     - Bits 33-64: Unix Timestamp
 
-## 2. Data Fields
+## Type - Telemetry
+###  2. Data Fields
 
 Data fields follow the header. Each field starts with a 1-byte identifier, followed by the data. The length of the data depends on the field type.
 
@@ -90,46 +91,112 @@ Data fields follow the header. Each field starts with a 1-byte identifier, follo
     - Length: 2 bytes
     - Unit: Degrees
 
-2.15. Battery Voltage (ID: 0x0F)
-    - Length: 2 bytes
-    - Unit: Volts (multiplied by 100 for 2 decimal precision)
-/*
-2.16. Data Transmission Status (ID: 0x10)
-    - Length: 1 byte
-    - Values: 0 = Failure, 1 = Success
-
-2.17. GPS Lock Status (ID: 0x11)
-    - Length: 1 byte
-    - Values: 0 = No Lock, 1 = Lock
-
-2.18. Recovery System Deployment Status (ID: 0x12)
-    - Length: 1 byte
-    - Values: 0 = Not Deployed, 1 = Deployed
-
-2.19. Camera Feed Status (ID: 0x13)
-    - Length: 1 byte
-    - Bit field for different cameras (1 = active, 0 = inactive)
-
-*/ // can be combined into a single byte in the future aka 0 0 0 0 0 0 0 0
-2.20. Sensor Status (ID: 0x14)
-    - Length: 2 bytes
-    - Bit field for various sensors (1 = operational, 0 = not operational)
-
-2.21. Error Codes (ID: 0x15)
+2.15. Error Codes (ID: 0x0F)
     - Length: 2 bytes
     - Specific integer codes for different errors
 
-2.22. Elapsed Time (ID: 0x16)
+2.16. Elapsed Time (ID: 0x10)
     - Length: 4 bytes
     - Unit: Seconds since launch
 
-2.23. Vibration Data (ID: 0x17) //questionable
+2.17. Vibration Data (ID: 0x11) //questionable
     - Length: Variable (recommend 2 bytes per axis, 6 bytes total)
     - Raw data from vibration sensors
 
-2.24. Payload Data (ID: 0x18)
+2.18. Payload Data (ID: 0x12)
     - Length: Variable
     - Custom data format depending on payload type
+
+## Command
+
+Commands are sent from the ground station to the rocket for various operations. Each command consists of a **Command ID** followed by the relevant data for that command.
+
+The Rocket ID is used.
+#### 3. Command Fields:
+
+**3.1. Toggle Telemetry Stream (ID: 0x01)**
+
+- **Length:** 1 byte
+- **Description:** Start the telemetry data stream.
+- **Field Data:** `0x01` (1 = Start, 0 = Stop)
+
+**3.2. Manually Deploy Recovery System (ID: 0x02)**
+
+- **Length:** 1 byte
+- **Description:** Deploy the recovery system (e.g., parachute).
+- **Field Data:** `0x01` (1 = Deploy, 0 = Do not deploy(Override))
+
+**3.3. Reset System (ID: 0x03)**
+
+- **Length:** 1 byte
+- **Description:** Reset the rocket’s onboard systems.
+- **Field Data:** `0x01` (1 = Reset)
+
+**3.4. Manually Activate Payload (ID: 0x04)**
+
+- **Length:** 1 byte
+- **Description:** Activate a payload on the rocket.
+- **Field Data:** `0x01` (1 = Activate, 0 = Deactivate)
+
+**3.5. Manually Activate Camera Feed (ID: 0x05)**
+
+- **Length:** 1 byte
+- **Description:** Turn on/off camera feed.
+- **Field Data:** Bit field for different cameras (e.g., `0b00000011` means cameras 1 and 2 are activated) up to 8 cameras.
+## Status
+
+The status message provides information about the rocket's current condition, operational states, and onboard systems.
+#### 4. Status Fields:
+
+**4.1. System Health (ID: 0x01)**
+
+- **Length:** 1 byte
+- **Description:** General health status of the rocket's onboard systems.
+- **Field Data:**
+    - `0x01` = Healthy
+    - `0x00` = Fault Detected
+
+**4.2. Recovery System Status (ID: 0x02)**
+
+- **Length:** 1 byte
+- **Description:** Status of the recovery system.
+- **Field Data:**
+    - `0x01` = Deployed
+    - `0x00` = Not Deployed
+
+**4.3. Telemetry Stream Status (ID: 0x03)**
+
+- **Length:** 1 byte
+- **Description:** Whether the telemetry stream is active.
+- **Field Data:**
+    - `0x01` = Active
+    - `0x00` = Inactive
+
+**4.4. GPS Lock Status (ID: 0x04)**
+
+- **Length:** 1 byte
+- **Description:** Whether the rocket has a GPS lock.
+- **Field Data:**
+    - `0x01` = Locked
+    - `0x00` = Not Locked
+
+**4.5. Battery Voltage (ID: 0x0F)**
+
+- Length: 2 bytes
+- Unit: Volts (multiplied by 100 for 2 decimal precision)
+
+
+**4.6. Sensor Operational Status (ID: 0x35)**
+
+- **Length:** 2 bytes
+- **Description:** Status of individual sensors (bit field).
+- **Field Data:** Each bit represents a sensor (1 = Operational, 0 = Not operational).
+    - Bit 0: Altimeter
+    - Bit 1: Accelerometer
+    - Bit 2: Gyroscope
+    - etc.
+
+## Response
 
 ## 3. Example Message Structure
 ```
